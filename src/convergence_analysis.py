@@ -42,3 +42,23 @@ def varying_K_results(num_observables: int, noise_threshold: float, X_elements: 
             row += [-np.inf] * (max_energy_level + 1 - len(row))
 
     return np.array(results)
+
+def one_shot_modmd(num_observables: int, noise_threshold: float, X_elements: ndarray,
+                      delta_t:float, K:int, kd_ratio: float, max_energy_level: int):
+    
+    """
+    Runs MODMD for fixed dimensions K and d. Returns an array of estimated eigenenergies.
+
+    :param num_observables: number of observables I
+    :param noise_threshold: threshold factor at which singular values get zeroed out during construction of A matrix
+    :param X_elements: elements to populate X matrix. Should be calculated using maximum K and d values in analysis
+    (see modmd.py/generate_X_elements for more details).
+    :param delta_t: hyperparameter ∆t representing the time step
+    :param K: value of K for which we want to compute estimated eigenenergies
+    :param kd_ratio: ratio of K/d
+    :param max_energy_level: maximum energy level we want to compute (max_energy_level = 3 if we want to compute
+    ground state energy and first three excited state energies)
+    :return: Matrix with results for convergence of eigenenergies with respect to K.
+    """
+    return varying_K_results(num_observables,noise_threshold,X_elements,delta_t,[K],kd_ratio,max_energy_level)[0]
+    
