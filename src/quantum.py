@@ -1,5 +1,6 @@
 import numpy as np
 from qiskit.quantum_info import SparsePauliOp
+from numpy import ndarray
 
 def bitstring_superposition_state(num_qubits: int, bitstrings: list):
     """
@@ -31,3 +32,12 @@ def random_one_local_paulis(num_qubits: int, size: int) -> list:
 
     random_subset = np.random.choice(pauli_string_set,size,False)
     return [SparsePauliOp(p).to_matrix(sparse=True) for p in random_subset]
+
+def trace_product(A: ndarray, B: ndarray) -> float:
+    """
+    Faster way to calculate Tr(AB).
+
+    :param A: Left operand in matrix product
+    :param B: Right operand in matrix product
+    """
+    return np.sum(A * B.T)

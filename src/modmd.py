@@ -44,8 +44,6 @@ def X_matrices(num_observables:int, d:int, K:int, X_elements:ndarray):
     X = np.zeros((d * num_observables, K+1), dtype=complex)
     Xp = np.zeros((d * num_observables, K+1), dtype=complex)
 
-    # X_element_subset = np.array(X_elements[:num_observables*(d+K+1)])
-
     # Populate X
     for i in range(K+1):
         X[:,i] = X_elements[i*num_observables:(d+i)*num_observables]
