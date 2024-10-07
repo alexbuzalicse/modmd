@@ -23,7 +23,7 @@ def generate_X_elements(observables:list, max_d:int, max_K:int, reference_state:
 
     # Caluclate inner products <phi_0|O_i|phi_0(t)
     X_elements = []
-    for j in range(1, max_d + max_K + 2):
+    for j in range(0, max_d + max_K + 1):
         for left_prod in left_prods:
             X_elements.append(left_prod @ evolved_reference_states[j])
 
@@ -54,13 +54,18 @@ def X_matrices(num_observables:int, d:int, K:int, X_elements:ndarray):
 
     return X, Xp
 
-def A_matrix(noise_threshold:float, X:ndarray, Xp:ndarray) -> ndarray:
+def A_matrix(noise_threshold:float, X:ndarray, Xp:ndarray, similarity_transform = True) -> ndarray:
     """
-     Calculate A = X'X+ with singular value thresholding.
+     Calculate A = X'X+ with singular value thresholding. If similarity_transform == True, we apply
+     the spectrum-preserving transform detailed in Eq. 69 of the ODMD paper. This outputs an A that
+     has smaller dimensions as X'X+ but the same spectrum, thus making eigenphase calculation more efficient.
+     Set similarity_transform to False only if this function is being used to determine properties of
+     the system that are not eigenenergies.
 
     :param noise_threshold: threshold factor at which singular values get zeroed out
     :param X: ODMD/MODMD X matrix
     :param Xp: ODMD/MODMD X' matrix
+    :param spectral_transformation: boolean for determining whether to apply similarity transform to A
     :returns: A matrix.
     """
 
@@ -74,5 +79,7 @@ def A_matrix(noise_threshold:float, X:ndarray, Xp:ndarray) -> ndarray:
     truncated_sigma_inverse = np.diag(1/singular_values[:rank])
     truncated_V = V[:, :rank]
 
-    # Return A = X'X+ = U^†*X'*V*Σ^(-1)
-    return np.transpose(np.conj(truncated_U)) @ Xp @ truncated_V @ truncated_sigma_inverse
+    # Return A = X'X+ ∼= U^†*X'*V*Σ^(-1)
+    if similarity_transform:
+        return np.transpose(np.conj(truncated_U)) @ Xp @ truncated_V @ truncated_sigma_inverse
+    return Xp @ truncated_V @ truncated_sigma_inverse @ np.transpose(np.conj(truncated_U))
