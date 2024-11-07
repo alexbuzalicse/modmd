@@ -11,3 +11,4 @@ This code can be used to replicate the results or run additional experiments wit
 |    4, 6b               |     LiH_K_convergence             | Plot convergence of LiH energy levels with respect to<br>the number of DMD snapshots K for ODMD and MODMD            |
 |        5           |         LiH_noise_convergence         |     Plot convergence of LiH energy levels with respect to <br> the noise level $\epsilon_{\text{noise}}$ for ODMD and MODMD       |
 |       7a            |       TFIM_signal_prediction           |   Plot predicted dynamics of TFIM observable signals for <br> different values of $k^*$, the number of timesteps used to construct $A$.       |
+|       7b            |       LiH_signal_prediction           |   Plot predicted dynamics of LiH observable signals for <br> different values of $k^*$, the number of timesteps used to construct $A$.       |
