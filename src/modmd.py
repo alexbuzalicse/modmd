@@ -1,5 +1,7 @@
 from numpy import ndarray
 import numpy as np
+from cmath import phase
+from scipy.linalg import eig
 
 def generate_X_elements(observables:list, max_d:int, max_K:int, reference_state: ndarray,
                         evolved_reference_states:ndarray) ->ndarray:
@@ -15,11 +17,10 @@ def generate_X_elements(observables:list, max_d:int, max_K:int, reference_state:
     :param max_K: maximum K value for X dimension
     :param reference_state: algorithm hyperparameter phi_0
     :param evolved_reference_states: phi_0(t) for t = k∆t and k = 0,1,...,(max_K+max_d) as discussed in Section III.A.
-    :return:
     """
 
     # Calculate each product <phi_0|O_i first as these are time independent
-    left_prods = [reference_state@Oi for Oi in observables]
+    left_prods = [np.conj(reference_state)@Oi for Oi in observables]
 
     # Caluclate inner products <phi_0|O_i|phi_0(t)
     X_elements = []
@@ -66,7 +67,6 @@ def A_matrix(noise_threshold:float, X:ndarray, Xp:ndarray, similarity_transform 
     :param X: ODMD/MODMD X matrix
     :param Xp: ODMD/MODMD X' matrix
     :param spectral_transformation: boolean for determining whether to apply similarity transform to A
-    :returns: A matrix.
     """
 
     # Compute SVD
@@ -83,3 +83,86 @@ def A_matrix(noise_threshold:float, X:ndarray, Xp:ndarray, similarity_transform 
     if similarity_transform:
         return np.transpose(np.conj(truncated_U)) @ Xp @ truncated_V @ truncated_sigma_inverse
     return Xp @ truncated_V @ truncated_sigma_inverse @ np.transpose(np.conj(truncated_U))
+
+def modmd_eigenenergies(num_observables: int, noise_threshold: float, X_elements: ndarray,
+                      delta_t:float, K:int, kd_ratio: float, max_energy_level: int) -> ndarray:
+    
+    """
+    Runs MODMD for fixed dimensions K and d. Returns an array of estimated eigenenergies.
+
+    :param num_observables: number of observables I
+    :param noise_threshold: threshold factor at which singular values get zeroed out during construction of A matrix
+    :param X_elements: elements to populate X matrix. Should be calculated using maximum K and d values in analysis
+    (see modmd.py/generate_X_elements for more details).
+    :param delta_t: hyperparameter ∆t representing the time step
+    :param K: value of K for which we want to compute estimated eigenenergies
+    :param kd_ratio: ratio of K/d
+    :param max_energy_level: maximum energy level we want to compute (max_energy_level = 3 if we want to compute
+    ground state energy and first three excited state energies)
+    """
+
+    # Calculate d based on K/d ratio, set d = 1 if int(K/ratio) == 0
+    d = max(int(K/kd_ratio),1)
+
+    # Generate system matrix as per Algorithm 1
+    X, Xp = X_matrices(num_observables,d,K,X_elements)
+    A = A_matrix(noise_threshold,X,Xp)
+
+    # Extract eigenenergies from eigenphases of A (up to E_max_energy_level)
+    A_eigenvalues = np.linalg.eigvals(A)
+    eigenenergies = [-phase(z)/delta_t for z in A_eigenvalues]
+
+    return np.unique(eigenenergies)[:max_energy_level + 1]
+
+def modmd_eigenstates(num_observables: int, noise_threshold: float, X_elements: ndarray,
+                      delta_t:float, K:int, kd_ratio: float, max_energy_level: int, evolved_Oi_phi_0_states) -> list:
+    """
+    Runs MODMD for fixed dimensions K and d. Returns an array of estimated eigenstates and associated eigenenergies
+    as per Equations 15-18.
+
+    :param num_observables: number of observables I
+    :param noise_threshold: threshold factor at which singular values get zeroed out during construction of A matrix
+    :param X_elements: elements to populate X matrix. Should be calculated using maximum K and d values in analysis
+    (see modmd.py/generate_X_elements for more details).
+    :param delta_t: hyperparameter ∆t representing the time step
+    :param K: value of K for which we want to compute estimated eigenenergies
+    :param kd_ratio: ratio of K/d
+    :param max_energy_level: maximum energy level we want to compute (max_energy_level = 3 if we want to compute
+    ground state energy and first three excited state energies)
+    :evolved_Oi_phi_0_states: a 2d list where the i_th element is a list containing the states e^(iHa∆t) for a = 0,1,...
+    as per Equation 18. Passed as a parameter so that this doesn't need to be recalculated for different values of K
+    """
+
+    # Calculate d based on K/d ratio, set d = 1 if int(K/ratio) == 0
+    d = max(int(K/kd_ratio),1)
+
+    # Generate system matrix as per Algorithm 1. Don't perform the similarity transform since we care
+    # about the eigenvectors, not just eigenvalues
+    X, Xp = X_matrices(num_observables,d,K,X_elements)
+    A = A_matrix(noise_threshold,X,Xp,similarity_transform=False)
+    wl, vl = eig(A,left=True,right=False)
+
+    # Get left eigenvectors of A
+    rounded_wl = np.round(wl,15)
+    rounded_wl = rounded_wl[rounded_wl.nonzero()]    
+    indices = np.argsort([-phase(z)/delta_t for z in rounded_wl])
+    A_left_eigenvectors = [vl[:,i]/np.linalg.norm(vl[:,i]) for i in indices[:max_energy_level+1]]
+    approximate_eigenenergies = sorted([-phase(z)/delta_t for z in rounded_wl])
+
+    # Generate approximate eigenstates as per Equation 18
+    approximate_eigenstates = []
+
+    for n in range(max_energy_level+1):
+        right_prods = []
+
+        for i in range(1,num_observables+1):
+            
+            for a in range(d):
+                
+                z_ai = A_left_eigenvectors[n][a*num_observables + i - 1]
+                right_prods.append(z_ai*evolved_Oi_phi_0_states[i-1][a])
+
+        approximate_nth_eigenstate = np.sum(right_prods,0)
+        approximate_eigenstates.append(approximate_nth_eigenstate/np.linalg.norm(approximate_nth_eigenstate))
+        
+    return approximate_eigenstates, approximate_eigenenergies
