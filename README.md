@@ -1,4 +1,5 @@
 ## Efficient Measurement-Driven Eigenenergy Estimation with Classical Shadows
+Updated as of third submission to PRX Quantum, 10/24/25
 
 This repository contains the code used to generate the figures in the Applications section of "Efficient Measurement-Driven Eigenenergy Estimation with Classical Shadows" (Shen et al., 2024 https://arxiv.org/abs/2409.13691). The base code for the multi-observable dynamic mode decomposition (MODMD) algorithm is contained in the source folder and each figure/experiment has its own Jupyter notebook. 
 
