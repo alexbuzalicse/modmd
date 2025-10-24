@@ -22,7 +22,7 @@ def generate_X_elements(observables:list, max_d:int, max_K:int, reference_state:
     # Calculate each product <phi_0|O_i first as these are time independent
     left_prods = [np.conj(reference_state)@Oi for Oi in observables]
 
-    # Caluclate inner products <phi_0|O_i|phi_0(t)
+    # Caluclate inner products <phi_0|O_i|phi_0(t)>
     X_elements = []
     for j in range(0, max_d + max_K + 1):
         for left_prod in left_prods:
@@ -143,7 +143,7 @@ def modmd_eigenstates(num_observables: int, noise_threshold: float, X_elements: 
     wl, vl = eig(A,left=True,right=False)
 
     # Get left eigenvectors of A
-    rounded_wl = np.round(wl,15)
+    rounded_wl = np.round(wl,13)
     rounded_wl = rounded_wl[rounded_wl.nonzero()]    
     indices = np.argsort([-phase(z)/delta_t for z in rounded_wl])
     A_left_eigenvectors = [vl[:,i]/np.linalg.norm(vl[:,i]) for i in indices[:max_energy_level+1]]
@@ -152,7 +152,7 @@ def modmd_eigenstates(num_observables: int, noise_threshold: float, X_elements: 
     # Generate approximate eigenstates as per Equation 18
     approximate_eigenstates = []
 
-    for n in range(max_energy_level+1):
+    for n in range(len(A_left_eigenvectors)):
         right_prods = []
 
         for i in range(1,num_observables+1):

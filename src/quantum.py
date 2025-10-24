@@ -77,7 +77,7 @@ def molecular_hamiltonian(molecule: str, basis_set: str, mapper:str, charge: int
 
     return qubit_hamiltonian
 
-def bitstring_superposition_state(num_qubits: int, bitstrings: list):
+def bitstring_superposition_state(num_qubits: int, bitstrings: list) -> ndarray:
     """
     Generate an even superposition of computational basis states denoted by a
     list of bitstrings.
